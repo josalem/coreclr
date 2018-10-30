@@ -10,6 +10,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Schema;
@@ -133,8 +134,15 @@ namespace CoreFX.TestUtils.TestFileSetup.Helpers
         /// <param name="destinationDirectory">Directory to which the tests are downloaded</param>
         /// <param name="testDefinitions">The mapping of tests parsed from a test definition list to their names</param>
         /// <param name="runAllTests">Optional argument, which denotes whether all tests available in the test list downloaded from jsonUrl should be run</param>
+        /// <param name="alcXunitExtensionPath">Optional argument with path which denotes whether to modify test directories and binaries to use Assembly Load Context</param>
+        /// <param name="ilasmPath">Optional argument to specify where ilasm/ildasm are located</param>
         /// <returns></returns>
-        public async Task SetupTests(string jsonUrl, string destinationDirectory, Dictionary<string, XUnitTestAssembly> testDefinitions = null, bool runAllTests = false)
+        public async Task SetupTests(string jsonUrl, 
+                                     string destinationDirectory, 
+                                     Dictionary<string, XUnitTestAssembly> testDefinitions = null, 
+                                     bool runAllTests = false, 
+                                     string alcXunitExtensionPath = "",
+                                     string ilasmPath = "")
         {
             Debug.Assert(Directory.Exists(destinationDirectory));
             // testDefinitions should not be empty unless we're running all tests with no exclusions
@@ -164,9 +172,97 @@ namespace CoreFX.TestUtils.TestFileSetup.Helpers
             foreach (XUnitTestAssembly assembly in testDefinitions.Values)
             {
                 rspGenerator.GenerateRSPFile(assembly, Path.Combine(destinationDirectory, assembly.Name));
+                if (!string.IsNullOrEmpty(alcXunitExtensionPath))
+                    await ModifyTestForAssemblyLoadContext(assembly, Path.Combine(destinationDirectory, assembly.Name), alcXunitExtensionPath, ilasmPath);
             }
 
             Directory.Delete(tempDirPath);
+        }
+
+        /// <summary>
+        /// Modifies the test DLL by ILDASM-ing, adding an assembly attribtue, and ILASM-ing to
+        /// enable test cases to be run inside their own Assembly Load Context.
+        /// </summary>
+        /// <param name="assembly">The assembly to modify</param>
+        /// <param name="TestDirectory">The directory where the test DLLs are</param>
+        /// <param name="alcXunitExtensionPath">The path to the Xunit extension DLL that needs to be next to the test DLL</param>
+        /// <param name="ilasmPath">The path to ilasm.exe and ildasm.exe</param>
+        private async Task ModifyTestForAssemblyLoadContext(XUnitTestAssembly assembly, string testDirectory, string alcXunitExtensionPath, string ilasmPath)
+        {
+            string assemblyAttributeText = @".custom instance void [xunit.core]Xunit.TestFrameworkAttribute::.ctor(string,
+                string) = ( 01 00 63 4D 69 63 72 6F 73 6F 66 74 2E 44 6F 74   // ..cMicrosoft.Dot
+                            4E 65 74 2E 58 75 6E 69 74 45 78 74 65 6E 73 69   // Net.XunitExtensi
+                            6F 6E 73 2E 58 75 6E 69 74 41 73 73 65 6D 62 6C   // ons.XunitAssembl
+                            79 4C 6F 61 64 43 6F 6E 74 65 78 74 2E 58 75 6E   // yLoadContext.Xun
+                            69 74 54 65 73 74 46 72 61 6D 65 77 6F 72 6B 57   // itTestFrameworkW
+                            69 74 68 41 73 73 65 6D 62 6C 79 4C 6F 61 64 43   // ithAssemblyLoadC
+                            6F 6E 74 65 78 74 39 4D 69 63 72 6F 73 6F 66 74   // ontext9Microsoft
+                            2E 44 6F 74 4E 65 74 2E 58 75 6E 69 74 45 78 74   // .DotNet.XunitExt
+                            65 6E 73 69 6F 6E 73 2E 58 75 6E 69 74 41 73 73   // ensions.XunitAss
+                            65 6D 62 6C 79 4C 6F 61 64 43 6F 6E 74 65 78 74   // emblyLoadContext
+                            00 00 )";
+
+            string originalFileName = $"{assembly.Name}.dll";
+            string toModifyFileName = $"{assembly.Name}_.dll";
+            string ilFileName       = $"{assembly.Name}.il";
+            string tmpDirPath = Path.Combine(testDirectory, "tmpDir");
+
+            if (!Directory.Exists(tmpDirPath))
+                Directory.CreateDirectory(tmpDirPath);
+
+            File.Move(Path.Combine(testDirectory, originalFileName), Path.Combine(tmpDirPath, toModifyFileName));
+
+            // ILDASM
+            string ildasmArguments = $"{Path.Combine(tmpDirPath, toModifyFileName)} /OUT={Path.Combine(tmpDirPath, ilFileName)}";
+                        // Create and initialize the test executable process
+            ProcessStartInfo ildasmStartInfo = new ProcessStartInfo(Path.Combine(ilasmPath, "ildasm.exe"), ildasmArguments)
+            {
+                Arguments = ildasmArguments,
+                WorkingDirectory = tmpDirPath
+            };
+
+
+            Process ildasmExecutableProcess = new Process();
+            ildasmExecutableProcess.StartInfo = ildasmStartInfo;
+            ildasmExecutableProcess.EnableRaisingEvents = true;
+            ildasmExecutableProcess.Start();
+            ildasmExecutableProcess.WaitForExit();
+
+            if (ildasmExecutableProcess.ExitCode != 0)
+                throw new Exception($"Failed to ILDASM {assembly.Name}");
+
+            // Inject Assembly Attribute
+            var match = $".assembly {assembly.Name}\r\n{{";
+            var text = await File.ReadAllTextAsync(Path.Combine(tmpDirPath, ilFileName));
+            Regex.Replace(text, match, match + assemblyAttributeText);
+            await File.WriteAllTextAsync(Path.Combine(tmpDirPath, ilFileName), text);
+
+            // ILASM
+            string ilasmArguments = $"{Path.Combine(tmpDirPath, ilFileName)} /NOLOGO /QUIET /DLL /OUTPUT={Path.Combine(tmpDirPath, originalFileName)}";
+                        // Create and initialize the test executable process
+            ProcessStartInfo ilasmStartInfo = new ProcessStartInfo(Path.Combine(ilasmPath, "ilasm.exe"), ilasmArguments)
+            {
+                Arguments = ilasmArguments,
+                WorkingDirectory = tmpDirPath
+            };
+
+
+            Process ilasmExecutableProcess = new Process();
+            ilasmExecutableProcess.StartInfo = ilasmStartInfo;
+            ilasmExecutableProcess.EnableRaisingEvents = true;
+            ilasmExecutableProcess.Start();
+            ilasmExecutableProcess.WaitForExit();
+
+            if (ilasmExecutableProcess.ExitCode != 0)
+                throw new Exception($"Failed to ILASM {assembly.Name}");
+
+            // Move things back
+            File.Move(Path.Combine(tmpDirPath, originalFileName), Path.Combine(testDirectory, originalFileName));
+
+            // add xunit extensions
+            File.Copy(alcXunitExtensionPath, Path.Combine(testDirectory, Path.GetFileName(alcXunitExtensionPath)));
+
+            Directory.Delete(tmpDirPath, true);
         }
 
         /// <summary>

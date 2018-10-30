@@ -49,6 +49,7 @@ set __DoCrossgen=
 set __CrossgenAltJit=
 set __CoreFXTests=
 set __CoreFXTestsRunAllAvailable=
+set __RunInAssemblyLoadContext=
 set __SkipGenerateLayout=
 set __BuildXUnitWrappers=
 set __PrintLastResultsOnly=
@@ -95,6 +96,7 @@ if /i "%1" == "buildxunitwrappers"                      (set __BuildXunitWrapper
 if /i "%1" == "printlastresultsonly"                    (set __PrintLastResultsOnly=1&shift&goto Arg_Loop)
 if /i "%1" == "CoreFXTests"                             (set __CoreFXTests=true&shift&goto Arg_Loop)
 if /i "%1" == "CoreFXTestsAll"                          (set __CoreFXTests=true&set __CoreFXTestsRunAllAvailable=true&shift&goto Arg_Loop)
+if /i "%1" == "CoreFXRunInALC"                          (set __RunInAssemblyLoadContext=true&shift&goto Arg_Loop)
 if /i "%1" == "CoreFXTestList"                          (set __CoreFXTests=true&set __CoreFXTestList=%2&shift&shift&goto Arg_Loop)
 if /i "%1" == "runcrossgentests"                        (set RunCrossGen=true&shift&goto Arg_Loop)
 REM This test feature is currently intentionally undocumented
@@ -135,6 +137,15 @@ if defined __CoreFXTestList (
     if not exist "%__CoreFXTestList%" (
         echo %__MsgPrefix%Error: Couldn't find CoreFX Test List "%__CoreFXTestList%".
         exit /b 1
+    )
+)
+
+if defined __RunInAssemblyLoadContext (
+    if not defined __CoreFXTests (
+        if not defined __CoreFXTestsRunAllAvailable (
+            echo %__MsgPrefix%Error: Don't specify "CoreFXRunInALC" without "CoreFXTests" or "CoreFXTestsAll"
+            exit /b 1
+        )
     )
 )
 
@@ -394,8 +405,13 @@ if not exist "%_CoreFXLogsDir%"  (mkdir "%_CoreFXLogsDir%")
 set _CoreFXTestSetupUtilityName=CoreFX.TestUtils.TestFileSetup
 set _CoreFXTestSetupUtility=%__ProjectFilesDir%\src\Common\CoreFX\TestFileSetup\%_CoreFXTestSetupUtilityName%.csproj
 
+set _CoreFXTestXunitExtensionName=Microsoft.DotNet.XunitExtensions.XunitAssemblyLoadContext
+set _CoreFXTestXunitExtension=%__ProjectFilesDir%\src\Common\CoreFX\XunitExtensions\%_CoreFXTestXunitExtensionName%.csproj
+
 call :ResolveDependencies
 if errorlevel 1 exit /b 1
+
+if "%__RunInAssemblyLoadContext%"=="true" call :BuildCoreFXXunitExtensions
 
 if defined __GenerateTestHostOnly (
     exit /b 0
@@ -412,6 +428,12 @@ if not defined __CoreFXTestList ( set __CoreFXTestList=%__ProjectFilesDir%\CoreF
 set _CoreFXTestExecutable=xunit.console.netcore.exe
 set _CoreFXTestExecutableArgs= --notrait category=nonnetcoreapptests --notrait category=nonwindowstests  --notrait category=failing --notrait category=IgnoreForCI --notrait category=OuterLoop --notrait Benchmark=true
 
+if "%__RunInAssemblyLoadContext%"=="true" (
+    set _AssemblyLoadContextArgs=--runInALC "%_CoreFXTestUtilitiesOutputPath%\%_CoreFXTestXunitExtensionName%.dll" --ilasmPath "%__ToolsDir%\ilasm"
+) else (
+    set _AssemblyLoadContextArgs=
+)
+
 REM Set the log file name to something Jenkins can understand
 set _CoreFX_TestLogFileName=testResults.xml
 set _CoreFX_TestRunScriptName=CoreCLR_RunTest.cmd
@@ -422,7 +444,7 @@ if "%__CoreFXTestsRunAllAvailable%" == "true" (
 )
 
 echo %__MsgPrefix%Downloading and Running CoreFX Test Binaries
-set NEXTCMD=call "%DotNetCli%" "%_CoreFXTestUtilitiesOutputPath%\%_CoreFXTestSetupUtilityName%.dll" --clean --outputDirectory "%_CoreFXTestBinariesPath%" --testListJsonPath "%__CoreFXTestList%" --testUrl "!_CoreFXTestRemoteURL!" %_CoreFX_RunCommand% --dotnetPath "%_CoreFXTestHost%\dotnet.exe" --executable %_CoreFXTestExecutable% --log %_CoreFXLogsDir% %_CoreFXTestExecutableArgs%
+set NEXTCMD=call "%DotNetCli%" "%_CoreFXTestUtilitiesOutputPath%\%_CoreFXTestSetupUtilityName%.dll" --clean %_AssemblyLoadContextArgs% --outputDirectory "%_CoreFXTestBinariesPath%" --testListJsonPath "%__CoreFXTestList%" --testUrl "!_CoreFXTestRemoteURL!" %_CoreFX_RunCommand% --dotnetPath "%_CoreFXTestHost%\dotnet.exe" --executable %_CoreFXTestExecutable% --log %_CoreFXLogsDir% %_CoreFXTestExecutableArgs%
 echo !NEXTCMD!
 !NEXTCMD!
 if errorlevel 1 (
@@ -651,6 +673,33 @@ if errorlevel 1 (
 )
 
 set NEXTCMD=call :msbuild "/p:Configuration=%CoreRT_BuildType%" "/p:OSGroup=%CoreRT_BuildOS%" "/p:Platform=%CoreRT_BuildArch%" "/p:OutputPath=%_CoreFXTestUtilitiesOutputPath%" "%_CoreFXTestSetupUtility%"
+echo !NEXTCMD!
+!NEXTCMD!
+if errorlevel 1 (
+    exit /b 1
+)
+
+exit /b 0
+
+REM =========================================================================================
+REM ===
+REM === Build the Xunit Extension for running tests in Assembly Load Context
+REM ===
+REM =========================================================================================
+
+:BuildCoreFXXunitExtensions
+
+echo %__MsgPrefix%Building CoreFX Xunit Extension
+
+REM Build Xunit Extension
+set NEXTCMD="%DotNetCli%" msbuild /t:Restore "%_CoreFXTestXunitExtension%"
+echo !NEXTCMD!
+!NEXTCMD!
+if errorlevel 1 (
+    exit /b 1
+)
+
+set NEXTCMD=call "%DotNetCli%" msbuild "/p:Configuration=%CoreRT_BuildType%" "/p:OSGroup=%CoreRT_BuildOS%" "/p:Platform=%CoreRT_BuildArch%" "/p:OutputPath=%_CoreFXTestUtilitiesOutputPath%" "%_CoreFXTestXunitExtension%"
 echo !NEXTCMD!
 !NEXTCMD!
 if errorlevel 1 (

@@ -38,6 +38,8 @@ namespace CoreFX.TestUtils.TestFileSetup
         private static bool runAllTests;
         private static int maximumDegreeOfParalellization;
         private static string logRootOutputPath;
+        private static string assemblyLoadContextXunitExtenstionPath;
+        private static string ilasmPath;
 
         private static ExitCode exitCode;
         private static string executableName;
@@ -115,6 +117,8 @@ namespace CoreFX.TestUtils.TestFileSetup
                 syntax.DefineOption("clean|cleanOutputDir", ref cleanTestBuild, "Clean test assembly output directory");
                 syntax.DefineOption("runSpecified|runSpecifiedTests", ref runSpecifiedTests, "Run specified Tests after setup");
                 syntax.DefineOption("runAll|runAllTests", ref runAllTests, "Run All available Tests in the specified TestList");
+                syntax.DefineOption("runInALC|runInAssemblyLoadContext", ref assemblyLoadContextXunitExtenstionPath, "Run test cases inside their own Assembly Load Context, requires path to extensions");
+                syntax.DefineOption("ilasmPath", ref ilasmPath, "Path to ilasm and ildasm");
                 syntax.DefineOption("dotnet|dotnetPath", ref dotnetPath, "Path to dotnet executable used to run tests.");
                 syntax.DefineOption("executable|executableName", ref executableName, "Name of the test executable to start");
                 syntax.DefineOption("log|logPath|logRootOutputPath", ref logRootOutputPath, "Run Tests after setup");
@@ -131,6 +135,19 @@ namespace CoreFX.TestUtils.TestFileSetup
                 if (!File.Exists(dotnetPath))
                     throw new ArgumentException("Invalid testhost path. Please supply a test host location to run tests.");
             }
+
+            if (!String.IsNullOrEmpty(assemblyLoadContextXunitExtenstionPath))
+            {
+                if (!File.Exists(assemblyLoadContextXunitExtenstionPath))
+                    throw new ArgumentException("Invalid path for xunit extensions.  Required to run tests in Assembly Load Contexts.");
+
+                if (string.IsNullOrEmpty(ilasmPath))
+                    throw new ArgumentException("Invalid path for ilasm/ildasm.  Required for running tests in Assembly Load Contexts.");
+
+                if (!File.Exists(Path.Combine(ilasmPath, "ilasm.exe")) || !File.Exists(Path.Combine(ilasmPath, "ildasm.exe")))
+                    throw new ArgumentException("Invalid path for ilasm/ildasm.  Required for running tests in Assembly Load Contexts.");
+            } 
+                
 
             return argSyntax;
         }
@@ -155,7 +172,7 @@ namespace CoreFX.TestUtils.TestFileSetup
             // Map test names to their definitions
             Dictionary<string, XUnitTestAssembly> testAssemblyDefinitions = testFileHelper.DeserializeTestJson(testListPath);
 
-            testFileHelper.SetupTests(testUrl, outputDir, testAssemblyDefinitions, runAll).Wait();
+            testFileHelper.SetupTests(testUrl, outputDir, testAssemblyDefinitions, runAll, assemblyLoadContextXunitExtenstionPath, ilasmPath).Wait();
         }
 
         /// <summary>
