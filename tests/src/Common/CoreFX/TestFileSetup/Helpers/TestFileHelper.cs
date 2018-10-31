@@ -234,7 +234,7 @@ namespace CoreFX.TestUtils.TestFileSetup.Helpers
             // Inject Assembly Attribute
             var match = $".assembly {assembly.Name}\r\n{{";
             var text = await File.ReadAllTextAsync(Path.Combine(tmpDirPath, ilFileName));
-            Regex.Replace(text, match, match + assemblyAttributeText);
+            text = Regex.Replace(text, match, match + assemblyAttributeText);
             await File.WriteAllTextAsync(Path.Combine(tmpDirPath, ilFileName), text);
 
             // ILASM
