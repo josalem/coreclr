@@ -50,7 +50,11 @@ function print_usage {
     echo '  --corefxtestlist=<path>          : Runs the CoreFX tests specified in the passed list'   
     echo '  --testHostDir=<path>             : Directory containing a built test host including core binaries, test dependencies' 
     echo '                                     and a dotnet executable'
+<<<<<<< HEAD
     echo '  --coreclr-src=<path>             : Specify the CoreCLR root directory. Required to build the TestFileSetup tool for CoreFX testing.'
+=======
+    echo '  --corefxruninalc                 : Runs each test case inside an Assembly Load Context'
+>>>>>>> Add mirroring changes to runtest.sh
 }
 
 function create_testhost
@@ -75,6 +79,10 @@ function create_testhost
     local coreFXTestSetupUtility="${coreClrSrcTestDir}/src/Common/CoreFX/TestFileSetup/${coreFXTestSetupUtilityName}.csproj"
     local coreFXTestSetupUtilityOutputPath=${__CoreFXTestDir}/TestUtilities
     local coreFXTestBinariesOutputPath=${__CoreFXTestDir}/tests_downloaded
+
+    local coreFXTestXunitExtensionName=Microsoft.DotNet.XunitExtensions.AssemblyLoadContext
+    local coreFXTestXunitExtension="${coreClrSrcTestDir}/src/Common/CoreFX/XunitExtensions/${coreFXTestXunitExtensionName}.csproj"
+    
     
     if [ -z $CoreFXTestList]; then
         local CoreFXTestList="${coreClrSrcTestDir}/CoreFX/CoreFX.issues.json"
@@ -105,14 +113,28 @@ function create_testhost
     buildCommandArgs=("msbuild ${coreFXTestSetupUtility} /p:OutputPath=${coreFXTestSetupUtilityOutputPath} /p:Platform=${_arch} /p:Configuration=Release")
     echo "${dotnetExe} $buildCommandArgs"
     "${dotnetExe}" $buildCommandArgs
-    
+
+    if [ "${RunCoreFXTestsInALC}" == "1" ]; then
+        restoreArgs=("msbuild /t:Restore ${CoreFXTestXunitExtension}")
+        echo "${dotnetExe} $restoreArgs"
+        "${dotnetExe}" $restoreArgs
+
+        xunitExtensionBuildArgs=("msbuild ${coreFXTestXunitExtension} /p:OutputPath=${coreFXTestSetupUtilityOutputPath} /p:Platform=${_arch} /p:Configuration=Release")
+        echo "${dotnetExe} $xunitExtensionBuildArgs"
+        "${dotnetExe}" $xunitExtensionBuildArgs
+
+        assemblyLoadContextArgs=--runInALC "${coreFXTestSetupUtilityOutputPath}/${CoreFXTestXunitExtensionName}.dll" --ilasmPath "${buildToolsDir}/ilasm"
+    else
+        assemblyLoadContextArgs=
+    fi
+
     if [ "${RunCoreFXTestsAll}" == "1" ]; then
         local coreFXRunCommand=--runAllTests
     else
         local coreFXRunCommand=--runSpecifiedTests
     fi
 
-    local buildTestSetupUtilArgs=("${coreFXTestSetupUtilityOutputPath}/${coreFXTestSetupUtilityName}.dll --clean --outputDirectory ${coreFXTestBinariesOutputPath} --testListJsonPath ${CoreFXTestList} ${coreFXRunCommand} --dotnetPath ${testHostDir}/dotnet --testUrl ${coreFXTestRemoteURL} --executable ${coreFXTestExecutable} --log ${coreFXLogDir} ${coreFXTestExecutableArgs}")
+    local buildTestSetupUtilArgs=("${coreFXTestSetupUtilityOutputPath}/${coreFXTestSetupUtilityName}.dll --clean ${assemblyLoadContextArgs} --outputDirectory ${coreFXTestBinariesOutputPath} --testListJsonPath ${CoreFXTestList} ${coreFXRunCommand} --dotnetPath ${testHostDir}/dotnet --testUrl ${coreFXTestRemoteURL} --executable ${coreFXTestExecutable} --log ${coreFXLogDir} ${coreFXTestExecutableArgs}")
     echo "${dotnetExe} $buildTestSetupUtilArgs"
     "${dotnetExe}" $buildTestSetupUtilArgs
 
