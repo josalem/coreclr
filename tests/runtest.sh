@@ -364,6 +364,7 @@ do
             ;;
         --corefxruninalc)
             ((RunCoreFXTestsInALC = 1))
+            ;;
         --testHostDir=*)
             export testHostDir=${i#*=}
             ;;
