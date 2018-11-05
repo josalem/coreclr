@@ -362,6 +362,8 @@ do
             export RunCoreFXTests=1
             export CoreFXTestList=${i#*=} 
             ;;
+        --corefxruninalc)
+            ((RunCoreFXTestsInALC = 1))
         --testHostDir=*)
             export testHostDir=${i#*=}
             ;;
