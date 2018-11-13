@@ -45,7 +45,7 @@ namespace CoreFX.TestUtils.TestFileSetup
                     {
                         if (String.IsNullOrWhiteSpace(exclusion.Name))
                             continue;
-                        sr.Write("-skipmethod ");
+                        sr.Write("-nomethod ");
                         sr.Write(exclusion.Name);
                         sr.WriteLine();
                     }
@@ -58,7 +58,7 @@ namespace CoreFX.TestUtils.TestFileSetup
                     {
                         if (String.IsNullOrWhiteSpace(exclusion.Name))
                             continue;
-                        sr.Write("-skipclass ");
+                        sr.Write("-noclass ");
                         sr.Write(exclusion.Name);
                         sr.WriteLine();
                     }
@@ -72,12 +72,56 @@ namespace CoreFX.TestUtils.TestFileSetup
                     {
                         if (String.IsNullOrWhiteSpace(exclusion.Name))
                             continue;
-                        sr.Write("-skipnamespace ");
+                        sr.Write("-nonamespace ");
                         sr.Write(exclusion.Name);
                         sr.WriteLine();
                     }
                 }
             }
+        }
+        public string GenerateExclusionString(XUnitTestAssembly testDefinition)
+        {
+            // If no exclusions are defined, we don't need to generate an .rsp file
+            if (testDefinition.Exclusions == null)
+                return "";
+
+            StringBuilder sb = new StringBuilder();
+
+            // Method exclusions
+            if (testDefinition.Exclusions.Methods != null)
+            {
+                foreach (Exclusion exclusion in testDefinition.Exclusions.Methods)
+                {
+                    if (String.IsNullOrWhiteSpace(exclusion.Name))
+                        continue;
+                    sb.Append($"-nomethod {exclusion.Name} ");
+                }
+            }
+
+            // Class exclusions
+            if (testDefinition.Exclusions.Classes != null)
+            {
+                foreach (Exclusion exclusion in testDefinition.Exclusions.Classes)
+                {
+                    if (String.IsNullOrWhiteSpace(exclusion.Name))
+                        continue;
+                    sb.Append($"-noclass {exclusion.Name} ");
+                }
+
+            }
+
+            // Namespace exclusions
+            if (testDefinition.Exclusions.Namespaces != null)
+            {
+                foreach (Exclusion exclusion in testDefinition.Exclusions.Namespaces)
+                {
+                    if (String.IsNullOrWhiteSpace(exclusion.Name))
+                        continue;
+                    sb.Append($"-nonamespace {exclusion.Name} ");
+                }
+            }
+
+            return sb.ToString();
         }
     }
 }

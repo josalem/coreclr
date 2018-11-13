@@ -425,7 +425,7 @@ if not exist %_CoreFXTestHost%\dotnet.exe (
 set /p _CoreFXTestRemoteURL=< "%__ProjectFilesDir%\CoreFX\CoreFXTestListURL.txt"
 if not defined __CoreFXTestList ( set __CoreFXTestList=%__ProjectFilesDir%\CoreFX\CoreFX.issues.json )
 
-set _CoreFXTestExecutable=xunit.console.netcore.exe
+set _CoreFXTestExecutable=xunit.console.dll
 set _CoreFXTestExecutableArgs= --notrait category=nonnetcoreapptests --notrait category=nonwindowstests  --notrait category=failing --notrait category=IgnoreForCI --notrait category=OuterLoop --notrait Benchmark=true
 
 if "%__RunInAssemblyLoadContext%"=="true" (
