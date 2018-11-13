@@ -138,7 +138,11 @@ namespace CoreFX.TestUtils.TestFileSetup.Helpers
             arguments.Append($"\"{Path.Combine(testDirectory, Path.GetFileName(testDirectory))}.dll\" ");
 
             // Append RSP file
-            arguments.Append($"@\"{Path.Combine(testDirectory, Path.GetFileName(testDirectory))}.rsp\" ");
+            // arguments.Append($"@\"{Path.Combine(testDirectory, Path.GetFileName(testDirectory))}.rsp\" ");
+            foreach (string line in File.ReadLines($"{Path.Combine(testDirectory, Path.GetFileName(testDirectory))}.rsp"))
+            {
+                arguments.Append($"{line} ");
+            }
 
             if (!String.IsNullOrEmpty(logPath))
             {
@@ -151,7 +155,7 @@ namespace CoreFX.TestUtils.TestFileSetup.Helpers
             {
                 arguments.Append($"-notrait {traitToExclude} ");
             }
-
+            Console.WriteLine(arguments.ToString());
             return arguments.ToString();
         }
     }
