@@ -317,7 +317,13 @@ namespace CoreFX.TestUtils.TestFileSetup.Helpers
                                     {
                                         testDefinitions[markedTestName] = new XUnitTestAssembly() { Name = markedTestName };
                                     }
-                                    testDefinitions[markedTestName].Url = jsonReader.Value.ToString();
+                                    string url = jsonReader.Value.ToString();
+                                    int index = url.IndexOf('?');
+                                    if (index != -1)
+                                    {
+                                        url = url.Substring(0, index);
+                                    }
+                                    testDefinitions[markedTestName].Url = url;
                                     markedTestName = string.Empty;
                                 }
                                 break;
