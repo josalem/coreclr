@@ -50,11 +50,8 @@ function print_usage {
     echo '  --corefxtestlist=<path>          : Runs the CoreFX tests specified in the passed list'   
     echo '  --testHostDir=<path>             : Directory containing a built test host including core binaries, test dependencies' 
     echo '                                     and a dotnet executable'
-<<<<<<< HEAD
     echo '  --coreclr-src=<path>             : Specify the CoreCLR root directory. Required to build the TestFileSetup tool for CoreFX testing.'
-=======
     echo '  --corefxruninalc                 : Runs each test case inside an Assembly Load Context'
->>>>>>> Add mirroring changes to runtest.sh
 }
 
 function create_testhost
@@ -361,9 +358,6 @@ do
         --corefxtestlist)
             export RunCoreFXTests=1
             export CoreFXTestList=${i#*=} 
-            ;;
-        --corefxruninalc)
-            ((RunCoreFXTestsInALC = 1))
             ;;
         --testHostDir=*)
             export testHostDir=${i#*=}
