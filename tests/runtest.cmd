@@ -444,7 +444,7 @@ if "%__CoreFXTestsRunAllAvailable%" == "true" (
 )
 
 echo %__MsgPrefix%Downloading and Running CoreFX Test Binaries
-set NEXTCMD=call "%DotNetCli%" "%_CoreFXTestUtilitiesOutputPath%\%_CoreFXTestSetupUtilityName%.dll" --clean %_AssemblyLoadContextArgs% --outputDirectory "%_CoreFXTestBinariesPath%" --testListJsonPath "%__CoreFXTestList%" --testUrl "!_CoreFXTestRemoteURL!" %_CoreFX_RunCommand% --dotnetPath "%_CoreFXTestHost%\dotnet.exe" --executable %_CoreFXTestExecutable% --log %_CoreFXLogsDir% %_CoreFXTestExecutableArgs%
+set NEXTCMD=call "%DotNetCli%" "%_CoreFXTestUtilitiesOutputPath%\%_CoreFXTestSetupUtilityName%.dll" --maxProcessCount 1 --clean %_AssemblyLoadContextArgs% --outputDirectory "%_CoreFXTestBinariesPath%" --testListJsonPath "%__CoreFXTestList%" --testUrl "!_CoreFXTestRemoteURL!" %_CoreFX_RunCommand% --dotnetPath "%_CoreFXTestHost%\dotnet.exe" --executable %_CoreFXTestExecutable% --log %_CoreFXLogsDir% %_CoreFXTestExecutableArgs%
 echo !NEXTCMD!
 !NEXTCMD!
 if errorlevel 1 (

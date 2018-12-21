@@ -41,7 +41,8 @@ namespace Microsoft.DotNet.XunitExtensions.XunitAssemblyLoadContext
 
             // Reflect through the context to find the same class and method (including generics) as was passed in
             var classToMask = new ReflectionTypeInfo(assembly.DefinedTypes.Where(t => t.IsClass).Where(t => t.FullName == Class.Name).FirstOrDefault().AsType());
-            var testClass = new TestClass(testCase.TestMethod.TestClass.TestCollection, classToMask);
+            var maskedTestCollection = new TestCollection(new TestAssembly(new ReflectionAssemblyInfo(assembly)), classToMask, "Masked_Test_Collection");
+            var testClass = new TestClass(maskedTestCollection, classToMask);
             var methodToMask = classToMask.GetMethod(testCase.Method.Name, true);
             var maskedTestMethod = new TestMethod(testClass, methodToMask);
 
@@ -88,6 +89,7 @@ namespace Microsoft.DotNet.XunitExtensions.XunitAssemblyLoadContext
 
             if (alcReference.IsAlive)
             {
+                summary.Failed += 10000;
                 diagnosticMessageSink.OnMessage(new DiagnosticMessage($"AssemblyLoadContext was not properly unloaded for test: {testCase.DisplayName}"));
             }
 

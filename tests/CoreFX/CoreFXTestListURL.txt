@@ -1,1 +1,1 @@
-https://dotnetbuilddrops.blob.core.windows.net/corefx-tests/josalem/artifact-stable-name/preview1-27008-06/netcoreapp/win10-x64/TestList.json
+https://dotnetbuilddrops.blob.core.windows.net/corefx-tests/master/preview1-27018-01/netcoreapp/win10-x64/TestList.json
