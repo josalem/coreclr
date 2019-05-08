@@ -25,6 +25,10 @@ void auto_trace_launch()
     DWORD currentProcessId = GetCurrentProcessId();
     STARTUPINFO si;
     ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(STARTUPINFO);
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
+    
     PROCESS_INFORMATION result;
     const wchar_t* commandFormat = L"C:\\Windows\\System32\\cmd.exe /c run.cmd collect -p %d";
     size_t len = wcslen(commandFormat) + 10 + 1;
