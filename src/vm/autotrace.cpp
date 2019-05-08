@@ -49,7 +49,6 @@ void auto_trace_launch()
 void auto_trace_wait()
 {
     WaitForSingleObject(auto_trace_event, INFINITE);
-    printf("auto trace: 2\n");
 }
 
 void auto_trace_signal()
@@ -57,9 +56,7 @@ void auto_trace_signal()
     #ifdef SetEvent
     #undef SetEvent
     #endif
-    printf("auto trace: 1\n");
-    SetEvent(auto_trace_event);
-    
+    SetEvent(auto_trace_event);    
 }
 
 #endif // FEATURE_AUTO_TRACE
