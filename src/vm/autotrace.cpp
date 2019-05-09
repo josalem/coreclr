@@ -30,7 +30,7 @@ void auto_trace_launch()
     si.wShowWindow = SW_HIDE;
     
     PROCESS_INFORMATION result;
-    const wchar_t* commandFormat = L"C:\\Windows\\System32\\cmd.exe /c run.cmd collect -p %d";
+    const wchar_t* commandFormat = L"C:\\Windows\\System32\\cmd.exe /c run.cmd collect --providers Microsoft-Windows-DotNETRuntime:FFFFFFFFFFFFFFBF -p %d";
     size_t len = wcslen(commandFormat) + 10 + 1;
     wchar_t* command = new wchar_t[len];
     wsprintf(command, commandFormat, currentProcessId);
