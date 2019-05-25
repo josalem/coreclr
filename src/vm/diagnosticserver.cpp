@@ -127,7 +127,16 @@ bool DiagnosticServer::Initialize()
         {
 #ifdef FEATURE_AUTO_TRACE
             auto_trace_init();
-            auto_trace_launch();
+            int nAutoTracers = 1;
+            char *nAutoTracersValue = getenv("N_AUTO_TRACERS");
+            if (nAutoTracersValue != NULL)
+            {
+                nAutoTracers = strtol(nAutoTracersValue, NULL, 10);
+            }
+            for (int i = 0; i < nAutoTracers; ++i)
+            {
+                auto_trace_launch();
+            }
 #endif
             DWORD dwThreadId = 0;
             HANDLE hThread = ::CreateThread( // TODO: Is it correct to have this "lower" level call here?

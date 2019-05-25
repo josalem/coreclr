@@ -1,8 +1,9 @@
 #include "common.h" // Required for pre-compiled header
 
 #ifdef FEATURE_AUTO_TRACE
-
+#ifdef FEATURE_PAL
 #include "pal.h"
+#endif // FEATURE_PAL
 
 HANDLE auto_trace_event;
 
@@ -28,15 +29,20 @@ void auto_trace_launch()
 #endif
     
     PROCESS_INFORMATION result;
+    // const char *dotnetTraceDirectory = nullptr;
+    // const char *traceLoc = getenv("AUTO_TRACE_LOC");
+    // WCHAR *command = nullptr;
+
     #ifdef FEATURE_PAL
     const char16_t* commandFormat = u"/Users/andrewau/git/diagnostics/src/Tools/dotnet-trace/run.sh collect --providers Microsoft-Windows-DotNETRuntime:FFFFFFFFFFFFFFBF -p %d";
     #else
-    const char16_t* commandFormat = u"C:\\Windows\\System32\\cmd.exe /c run.cmd collect --providers Microsoft-Windows-DotNETRuntime:FFFFFFFFFFFFFFBF -p %d";
+    const WCHAR* commandFormat = L"C:\\Windows\\System32\\cmd.exe /c run.cmd collect --providers Microsoft-Windows-DotNETRuntime:FFFFFFFFFFFFFFBF -p %d";
     #endif
+
     size_t len = wcslen(commandFormat) + 10 + 1;
-    char16_t* command = new char16_t[len];
+    WCHAR* command = new WCHAR[len];
     _snwprintf_s(command, len, _TRUNCATE, commandFormat, currentProcessId);
-    const char16_t* currentDirectory = u"C:\\Dev\\diagnostics\\src\\Tools\\dotnet-trace";
+    const WCHAR* currentDirectory = L"C:\\git\\diagnostics\\src\\Tools\\dotnet-trace";
 
     BOOL code = CreateProcessW(
         /* lpApplicationName    = */ nullptr,
