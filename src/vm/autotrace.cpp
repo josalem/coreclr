@@ -29,20 +29,21 @@ void auto_trace_launch()
 #endif
     
     PROCESS_INFORMATION result;
-    // const char *dotnetTraceDirectory = nullptr;
-    // const char *traceLoc = getenv("AUTO_TRACE_LOC");
-    // WCHAR *command = nullptr;
 
     #ifdef FEATURE_PAL
-    const char16_t* commandFormat = u"/Users/andrewau/git/diagnostics/src/Tools/dotnet-trace/run.sh collect --providers Microsoft-Windows-DotNETRuntime:FFFFFFFFFFFFFFBF -p %d";
+    const WCHAR* commandFormat = u"%hs/run.sh collect --providers Microsoft-Windows-DotNETRuntime:FFFFFFFFFFFFFFBF -p %d";
+    const char* defaultTraceLocation = "/git/diagnostics/src/Tools/dotnet-trace/";
     #else
-    const WCHAR* commandFormat = L"C:\\Windows\\System32\\cmd.exe /c run.cmd collect --providers Microsoft-Windows-DotNETRuntime:FFFFFFFFFFFFFFBF -p %d";
+    const WCHAR* commandFormat = L"C:\\Windows\\System32\\cmd.exe /c %hs\\run.cmd collect --providers Microsoft-Windows-DotNETRuntime:FFFFFFFFFFFFFFBF -p %d";
+    const char* defaultTraceLocation = "C:\\git\\diagnostics\\src\\Tools\\dotnet-trace\\";
     #endif
 
-    size_t len = wcslen(commandFormat) + 10 + 1;
+    const char *traceLoc = getenv("AUTO_TRACE_LOC");
+    const char *dotnetTraceDirectory = traceLoc == NULL ? defaultTraceLocation : traceLoc;
+    size_t len = _snwprintf(NULL, 0, commandFormat, traceLoc, dotnetTraceDirectory, currentProcessId);
     WCHAR* command = new WCHAR[len];
-    _snwprintf_s(command, len, _TRUNCATE, commandFormat, currentProcessId);
-    const WCHAR* currentDirectory = L"C:\\git\\diagnostics\\src\\Tools\\dotnet-trace";
+    _snwprintf_s(command, len, _TRUNCATE, commandFormat, dotnetTraceDirectory, currentProcessId);
+    MAKE_WIDEPTR_FROMUTF8(currentDirectory, dotnetTraceDirectory);
 
     BOOL code = CreateProcessW(
         /* lpApplicationName    = */ nullptr,
