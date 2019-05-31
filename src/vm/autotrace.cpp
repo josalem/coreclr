@@ -30,7 +30,6 @@ void auto_trace_init()
         DWORD currentProcessId = GetCurrentProcessId();
         command = new WCHAR[8192];
         _snwprintf_s(command, 8192, _TRUNCATE, command_format, commandTextValue, currentProcessId);
-        fwprintf(stdout, command);
     }
     else
     {
