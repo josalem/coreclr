@@ -7,7 +7,11 @@
 
 HANDLE auto_trace_event;
 static size_t g_n_tracers = 1;
+#ifdef __apple__
 static const WCHAR* command_format = L"%hs -p %d";
+#else
+static const WCHAR* command_format = u"%hs -p %d";
+#endif // __apple__
 static WCHAR* command = nullptr;
 
 void auto_trace_init()
@@ -15,7 +19,7 @@ void auto_trace_init()
     char *nAutoTracersValue = getenv("N_AUTO_TRACERS");
     if (nAutoTracersValue != NULL)
     {
-        g_n_tracers = strtol(nAutoTracersValue, NULL, 10);
+        g_n_tracers = strtoul(nAutoTracersValue, NULL, 10);
     }
 
     // Get the command to run auto-trace.  Note that the `-p <pid>` option
@@ -24,9 +28,9 @@ void auto_trace_init()
     if (commandTextValue != NULL)
     {
         DWORD currentProcessId = GetCurrentProcessId();
-        size_t len = _snwprintf(NULL, 0, command_format, commandTextValue, currentProcessId);
-        command = new WCHAR[len];
-        _snwprintf_s(command, len, _TRUNCATE, command_format, commandTextValue, currentProcessId);
+        command = new WCHAR[8192];
+        _snwprintf_s(command, 8192, _TRUNCATE, command_format, commandTextValue, currentProcessId);
+        fwprintf(stdout, command);
     }
     else
     {
@@ -68,7 +72,6 @@ void auto_trace_launch_internal()
         /* lpStartupInfo        = */ &si,
         /* lpProcessInformation = */ &result
     );
-    delete[] command;
 }
 
 void auto_trace_launch()
@@ -77,11 +80,13 @@ void auto_trace_launch()
     {
         auto_trace_launch_internal();
     }
+    delete[] command;
 }
 
 void auto_trace_wait()
 {
-    WaitForSingleObject(auto_trace_event, INFINITE);
+    if (g_n_tracers > 0)
+        WaitForSingleObject(auto_trace_event, INFINITE);
 }
 
 void auto_trace_signal()
@@ -89,7 +94,10 @@ void auto_trace_signal()
     #ifdef SetEvent
     #undef SetEvent
     #endif
-    SetEvent(auto_trace_event);    
+    static size_t nCalls = 0;
+    fprintf(stdout, "%d", nCalls);
+    if (++nCalls == g_n_tracers)
+        SetEvent(auto_trace_event);
 }
 
 #endif // FEATURE_AUTO_TRACE
