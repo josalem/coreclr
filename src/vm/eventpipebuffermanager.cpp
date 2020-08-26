@@ -557,11 +557,8 @@ void EventPipeBufferManager::WriteAllBuffersToFile(EventPipeFile *pFile, LARGE_I
         PRECONDITION(GetCurrentEvent() == nullptr);
     }
     CONTRACTL_END;
-
-    const bool anyBackpressure = pFile->PollBackpressure();
-
-    STRESS_LOG4(LF_EVENTPIPE, LL_INFO100, "BufferManager.WriteAllBuffersToFile this=0x%p m_sizeOfAllBuffers=0x%zx stopTimeStamp=0x%llx backpressure=%d\n",
-        this, m_sizeOfAllBuffers, stopTimeStamp.QuadPart, anyBackpressure);
+    STRESS_LOG3(LF_EVENTPIPE, LL_INFO100, "BufferManager.WriteAllBuffersToFile this=0x%p m_sizeOfAllBuffers=0x%zx stopTimeStamp=0x%llx\n",
+        this, m_sizeOfAllBuffers, stopTimeStamp.QuadPart);
 
     // The V4 format doesn't require full event sorting as V3 did
     // See the comments in WriteAllBufferToFileV4 for more details

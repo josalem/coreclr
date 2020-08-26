@@ -196,9 +196,10 @@ void FastSerializer::WriteBuffer(BYTE *pBuffer, unsigned int length)
     EX_TRY
     {
         uint32_t outCount;
-        STRESS_LOG2(LF_EVENTPIPE, LL_INFO100000, "FastSerializer.WriteBuffer StreamWriter.Write start "
-            "this=0x%p length=0x%x\n",
-            this, length);
+        bool anyBackpressure = m_pStreamWriter->PollBackpressure();
+        STRESS_LOG3(LF_EVENTPIPE, LL_INFO100000, "FastSerializer.WriteBuffer StreamWriter.Write start "
+            "this=0x%p length=0x%x backpressure=%d\n",
+            this, length, anyBackpressure);
         bool fSuccess = m_pStreamWriter->Write(pBuffer, length, outCount);
         STRESS_LOG2(LF_EVENTPIPE, LL_INFO100000, "FastSerializer.WriteBuffer StreamWriter.Write stop outCount=0x%x fSuccess=0x%x\n",
             outCount, (DWORD)fSuccess);
