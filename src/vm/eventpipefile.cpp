@@ -253,6 +253,11 @@ void EventPipeFile::WriteSequencePoint(EventPipeSequencePoint* pSequencePoint)
     m_stackHash.RemoveAll();
 }
 
+bool EventPipeFile::PollBackpressure()
+{
+    return m_pSerializer->PollBackpressure();
+}
+
 void EventPipeFile::Flush(FlushFlags flags)
 {
     // Write existing buffer to the stream/file regardless of whether it is full or not.

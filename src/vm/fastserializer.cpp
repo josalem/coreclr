@@ -65,6 +65,11 @@ bool IpcStreamWriter::Write(const void *lpBuffer, const uint32_t nBytesToWrite, 
     return _pStream->Write(lpBuffer, nBytesToWrite, nBytesWritten);
 }
 
+bool IpcStreamWriter::PollBackpressure()
+{
+    return _pStream->PollBackpressure();
+}
+
 FileStreamWriter::FileStreamWriter(const SString &outputFilePath)
 {
     CONTRACTL
@@ -166,6 +171,11 @@ void FastSerializer::WriteObject(FastSerializableObject *pObject)
     pObject->FastSerialize(this);
 
     WriteTag(FastSerializerTags::EndObject);
+}
+
+bool FastSerializer::PollBackpressure()
+{
+    return m_pStreamWriter->PollBackpressure();
 }
 
 void FastSerializer::WriteBuffer(BYTE *pBuffer, unsigned int length)

@@ -45,6 +45,7 @@ public:
     StreamWriter() = default;
     virtual ~StreamWriter() = default;
     virtual bool Write(const void *lpBuffer, const uint32_t nBytesToWrite, uint32_t &nBytesWritten) const = 0;
+    virtual bool PollBackpressure() { return false; }
 };
 
 //!
@@ -56,6 +57,7 @@ public:
     IpcStreamWriter(uint64_t id, IpcStream *pStream);
     ~IpcStreamWriter();
     bool Write(const void *lpBuffer, const uint32_t nBytesToWrite, uint32_t &nBytesWritten) const;
+    virtual bool PollBackpressure();
 
 private:
     IpcStream *_pStream;
@@ -85,6 +87,7 @@ public:
     void WriteBuffer(BYTE *pBuffer, unsigned int length);
     void WriteTag(FastSerializerTags tag, BYTE *payload = NULL, unsigned int payloadLength = 0);
     void WriteString(const char *strContents, unsigned int length);
+    bool PollBackpressure();
 
     unsigned int GetRequiredPadding() const
     {

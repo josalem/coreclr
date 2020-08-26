@@ -21,6 +21,7 @@ public:
     ~IpcStream();
     bool Read(void *lpBuffer, const uint32_t nBytesToRead, uint32_t &nBytesRead) const;
     bool Write(const void *lpBuffer, const uint32_t nBytesToWrite, uint32_t &nBytesWritten) const;
+    bool PollBackpressure();
     bool Flush() const;
 
     class DiagnosticsIpc final

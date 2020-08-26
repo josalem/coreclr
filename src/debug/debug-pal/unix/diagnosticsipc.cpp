@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include "diagnosticsipc.h"
 #include "processdescriptor.h"
+#include "poll.h"
 
 IpcStream::DiagnosticsIpc::DiagnosticsIpc(const int serverSocket, sockaddr_un *const pServerAddress) :
     _serverSocket(serverSocket),
@@ -197,6 +198,18 @@ bool IpcStream::Write(const void *lpBuffer, const uint32_t nBytesToWrite, uint32
 
     nBytesWritten = static_cast<uint32_t>(ssize);
     return fSuccess;
+}
+
+bool IpcStream::PollBackpressure()
+{
+    pollfd pfd;
+    pfd.fd = _clientSocket;
+    pfd.events = POLLOUT;
+    pfd.revents = 0;
+
+    int pollRet = poll(&pfd, 1, 0);
+    // timeout --> there's backpressure
+    return pollRet == 0;
 }
 
 bool IpcStream::Flush() const

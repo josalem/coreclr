@@ -87,6 +87,7 @@ public:
     };
     void Flush(FlushFlags flags = FlushAllBlocks);
     bool HasErrors() const;
+    bool PollBackpressure();
 
     const char *GetTypeName() override
     {
